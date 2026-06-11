@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Analycode v4.0 • Zero Duplicate</title>
+  <title>Analycode v4.1 • Code Only</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
@@ -60,7 +60,7 @@
         }
       };
 
-      // MOTEUR D'EXTRACTION RESTAURÉ v3.7 STABLE
+      // MOTEUR D'EXTRACTION v3.7 STABLE RESTAURÉ
       const extractFullElementBlock = (fullCode, startIndex, term) => {
         if (!fullCode || startIndex === -1) return null;
 
@@ -220,30 +220,37 @@
           customs: dynamicComponents
         }), [dynamicComponents]);
 
-        // FILTRAGE STRICT PAR BOUNDARY (MOT ENTIER) v4.0 POUR EVITER LES DOUBLONS DANS LES COMMENTAIRES
+        // ALGORITHME DE RECHERCHE ANTI-COMMENTAIRES v4.1
         const findMatches = useCallback((code, term) => {
           if (!term || !code) return [];
           const cleanTerm = term.replace(/[<\/>]/g, "").trim();
           const results = [];
-          
-          // Si c'est un tag connu, on cherche le mot entier pour éviter les pièges
-          const isTag = STATIC_TOKENS.structure.includes(cleanTerm.toLowerCase());
-          
-          if (isTag) {
-            const regex = new RegExp(`\\b${cleanTerm}\\b`, 'gi');
-            let match;
-            while ((match = regex.exec(code)) !== null) {
-              results.push({ start: match.index, length: cleanTerm.length });
-            }
-          } else {
-            // Recherche textuelle classique pour les classes ou hooks
-            let index = 0;
-            while (index < code.length) {
-              const found = code.toLowerCase().indexOf(cleanTerm.toLowerCase(), index);
-              if (found === -1) break;
+
+          // Étape A: Repérer les plages d'index occupées par les commentaires HTML const commentRanges = [];
+          const commentRegex = //g;
+          let commentMatch;
+          while ((commentMatch = commentRegex.exec(code)) !== null) {
+            commentRanges.push({
+              start: commentMatch.index,
+              end: commentMatch.index + commentMatch[0].length
+            });
+          }
+
+          // Étape B: Effectuer la recherche standard
+          let index = 0;
+          while (index < code.length) {
+            const found = code.toLowerCase().indexOf(cleanTerm.toLowerCase(), index);
+            if (found === -1) break;
+
+            // Étape C: Vérifier si la correspondance trouvée est à l'intérieur d'un commentaire
+            const isInsideComment = commentRanges.some(range => found >= range.start && found < range.end);
+
+            // On ne valide que si c'est en dehors de tout commentaire
+            if (!isInsideComment) {
               results.push({ start: found, length: cleanTerm.length });
-              index = found + Math.max(1, cleanTerm.length);
             }
+
+            index = found + Math.max(1, cleanTerm.length);
           }
           return results;
         }, []);
@@ -276,7 +283,7 @@
 
         const handleCopyState = () => {
           const debugState = {
-            analycodeVersion: "4.0",
+            analycodeVersion: "4.1",
             timestamp: new Date().toISOString(),
             searchTerm: searchTerm,
             matchIndex: matches.length > 0 ? currentMatchIdx + 1 : 0,
@@ -300,8 +307,8 @@
                 {/* Header */}
                 <div className="bg-[#050505] border border-[#2d2d3a] rounded-xl p-2 text-center relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-500 to-transparent animate-pulse"></div>
-                  <h1 className="text-xs font-mono text-cyan-400 font-bold tracking-widest uppercase">🧠 ANALYCODE v4.0</h1>
-                  <p className="text-[9px] text-gray-500 font-mono">Zero Ghost Matches Mode</p>
+                  <h1 className="text-xs font-mono text-cyan-400 font-bold tracking-widest uppercase">🧠 ANALYCODE v4.1</h1>
+                  <p className="text-[9px] text-gray-500 font-mono">Comment Filtering Engine Active</p>
                 </div>
 
                 {/* Input Area */}
@@ -318,7 +325,7 @@
                     <LiveSandBox code={isolatedBlock} sourceCode={sourceCode} />
                   ) : (
                     <div className="text-gray-600 italic text-[10px] border border-dashed border-[#2d2d3a] rounded-lg h-20 flex items-center justify-center bg-black/20 font-mono">
-                      RENDU NETTOYÉ DES SOUVENIRS
+                      ZÉRO SOUVENIR DE COMMENTAIRE
                     </div>
                   )}
                 </div>
@@ -352,7 +359,7 @@
                 {/* BLOC DE CODE SOURCE */}
                 <div className="bg-[#050508] border border-[#2d2d3a] rounded-xl p-2 relative shadow-inner">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-[9px] font-mono text-gray-500 tracking-wider">✂️ SOURCE TRAITÉE (MOTS ENTIERS) :</span>
+                    <span className="text-[9px] font-mono text-gray-500 tracking-wider">✂️ BLOC PUR SANS COMMENTAIRE :</span>
                     {isolatedBlock && (
                       <button 
                         onClick={handleCopy}
@@ -413,7 +420,7 @@
 
               {/* Footer */}
               <div className="text-center text-[8px] font-mono text-gray-700 pt-1 border-t border-[#1a1a24]">
-                ANALYCODE ENGINE v4.0 • STRICT WORD BOUNDARY ACTIVE
+                ANALYCODE ENGINE v4.1 • HTML COMMENT STRIPPING ONLINE
               </div>
 
             </div>
