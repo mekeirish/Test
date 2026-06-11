@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Analycode v3.8 • Perfect Anchor</title>
+  <title>Analycode v3.9 • Engine Restore</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
@@ -60,29 +60,14 @@
         }
       };
 
-      // MOTEUR D'EXTRACTION AVEC ANCRAGE DE TAG STRICT v3.8
+      // RETOUR AU MOTEUR CHIRURGICAL DE LA v3.7 (PERFORMANT & RECONNU)
       const extractFullElementBlock = (fullCode, startIndex, term) => {
         if (!fullCode || startIndex === -1) return null;
 
         const cleanTerm = term.replace(/[<\/>]/g, "").trim();
-        
-        // ÉTAPE 1 : Identifier si le terme recherché correspond à un tag connu
-        let targetTagName = "div"; 
-        const isKnownTag = STATIC_TOKENS.structure.includes(cleanTerm.toLowerCase());
-        if (isKnownTag) {
-          targetTagName = cleanTerm.toLowerCase();
-        } else {
-          // Si c'est une classe ou du texte, on essaie de deviner le tag le plus proche à gauche
-          const preMatch = fullCode.substring(0, startIndex).match(/<([a-zA-Z0-9]+)(?:\s+[^>]*>|>)[^<]*$/);
-          if (preMatch) targetTagName = preMatch[1].toLowerCase();
-        }
-
-        // ÉTAPE 2 : Remonter à gauche pour trouver l'OUVERTURE STRICTE de CE tag précis
         const codeBefore = fullCode.substring(0, startIndex + cleanTerm.length);
-        const openingRegex = new RegExp(`<(${targetTagName})(?:\\s+[^>]*>|>)`, 'gi');
-        const allOpenings = [...codeBefore.matchAll(openingRegex)];
-        const lastOpeningMatch = allOpenings.pop();
-
+        
+        const lastOpeningMatch = [...codeBefore.matchAll(/<([a-zA-Z0-9]+)(?:\s+[^>]*>|>)/g)].pop();
         if (!lastOpeningMatch) {
           return fullCode.substring(startIndex, startIndex + cleanTerm.length);
         }
@@ -94,9 +79,8 @@
           return fullCode.substring(realStart, lastOpeningMatch.index + lastOpeningMatch[0].length);
         }
 
-        // ÉTAPE 3 : Compter la profondeur avec précision chirurgicale
         let depth = 0;
-        const tagFinder = new RegExp(`(<\\s*${tagName}[>\\s]|<\\s*\\/\\s*${tagName}\\s*>)`, 'gi');
+        const tagFinder = new RegExp(`(<\s*${tagName}[>\s]|<\s*\/\s*${tagName}\s*>)`, 'gi');
         tagFinder.lastIndex = realStart;
         let match;
         
@@ -119,7 +103,7 @@
           }
         }
 
-        return fullCode.substring(realStart, Math.min(realStart + 250, fullCode.length));
+        return fullCode.substring(realStart, Math.min(realStart + 200, fullCode.length));
       };
 
       const LiveSandBox = ({ code, sourceCode }) => {
@@ -278,7 +262,7 @@
 
         const handleCopyState = () => {
           const debugState = {
-            analycodeVersion: "3.8",
+            analycodeVersion: "3.9",
             timestamp: new Date().toISOString(),
             searchTerm: searchTerm,
             matchIndex: matches.length > 0 ? currentMatchIdx + 1 : 0,
@@ -302,11 +286,11 @@
                 {/* Header */}
                 <div className="bg-[#050505] border border-[#2d2d3a] rounded-xl p-2 text-center relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-500 to-transparent animate-pulse"></div>
-                  <h1 className="text-xs font-mono text-cyan-400 font-bold tracking-widest uppercase">🧠 ANALYCODE v3.8</h1>
-                  <p className="text-[9px] text-gray-500 font-mono">Strict Anchor Protocol</p>
+                  <h1 className="text-xs font-mono text-cyan-400 font-bold tracking-widest uppercase">🧠 ANALYCODE v3.9</h1>
+                  <p className="text-[9px] text-gray-500 font-mono">Restored Engine Stable</p>
                 </div>
 
-                {/* Input */}
+                {/* Input Area */}
                 <textarea
                   className="w-full h-20 bg-[#12121a] border border-[#2d2d3a] rounded-xl p-2 font-mono text-[10px] text-gray-300 resize-none focus:outline-none focus:border-cyan-500 transition-colors"
                   placeholder="Collez le code source ici..."
@@ -314,18 +298,18 @@
                   onChange={(e) => setSourceCode(e.target.value)}
                 />
 
-                {/* RENDU */}
+                {/* RENDU SANBOX */}
                 <div className="bg-[#050508] border border-[#2d2d3a] rounded-xl p-1 relative shadow-inner">
                   {isolatedBlock ? (
                     <LiveSandBox code={isolatedBlock} sourceCode={sourceCode} />
                   ) : (
                     <div className="text-gray-600 italic text-[10px] border border-dashed border-[#2d2d3a] rounded-lg h-20 flex items-center justify-center bg-black/20 font-mono">
-                      AUCUNE CONTAMINATION DE TAG
+                      RENDU GLOBAL RESTAURÉ
                     </div>
                   )}
                 </div>
 
-                {/* CONTROLES */}
+                {/* CONTROLES NAVIGATION & STATE */}
                 <div className="bg-[#12121a] border border-[#2d2d3a] rounded-xl p-2 flex items-center justify-between gap-1.5 shadow-lg">
                   <input
                     type="text"
@@ -351,10 +335,10 @@
                   </div>
                 </div>
 
-                {/* SOURCE CODE ZONE */}
+                {/* BLOC DE CODE SOURCE */}
                 <div className="bg-[#050508] border border-[#2d2d3a] rounded-xl p-2 relative shadow-inner">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-[9px] font-mono text-gray-500 tracking-wider">✂️ BLOC STRICT SÉLECTIONNÉ :</span>
+                    <span className="text-[9px] font-mono text-gray-500 tracking-wider">✂️ SOURCE PARCOURUE :</span>
                     {isolatedBlock && (
                       <button 
                         onClick={handleCopy}
@@ -365,11 +349,11 @@
                     )}
                   </div>
                   <div className="context-block text-gray-300 bg-black/60 p-2 rounded-lg border border-[#161622] max-h-24 overflow-y-auto">
-                    {isolatedBlock ? isolatedBlock : <span className="text-gray-600 italic text-[10px] font-mono">En attente...</span>}
+                    {isolatedBlock ? isolatedBlock : <span className="text-gray-600 italic text-[10px] font-mono">En attente de ciblage...</span>}
                   </div>
                 </div>
 
-                {/* Tabs */}
+                {/* Onglets et Grille */}
                 <div className="space-y-1.5 pt-1">
                   <div className="flex gap-0.5 border-b border-[#2d2d3a] pb-0.5 overflow-x-auto">
                     {[
@@ -389,7 +373,6 @@
                     ))}
                   </div>
 
-                  {/* Grid */}
                   <div className="grid grid-cols-2 gap-1.5 max-h-24 overflow-y-auto pr-0.5">
                     {categories[activeTab]?.length > 0 ? (
                       categories[activeTab].map((item, idx) => (
@@ -406,7 +389,7 @@
                       ))
                     ) : (
                       <div className="col-span-2 text-center text-gray-600 italic text-[10px] py-2 font-mono bg-[#111116] rounded-lg border border-[#2d2d3a]">
-                        Aucun élément détecté.
+                        Aucun élément.
                       </div>
                     )}
                   </div>
@@ -416,7 +399,7 @@
 
               {/* Footer */}
               <div className="text-center text-[8px] font-mono text-gray-700 pt-1 border-t border-[#1a1a24]">
-                ANALYCODE ENGINE v3.8 • ANCHOR ISOLATION VERIFIED
+                ANALYCODE ENGINE v3.9 • CORE 3.7 RESTORED & ACTIVE
               </div>
 
             </div>
