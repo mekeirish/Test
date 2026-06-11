@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Analycode v3.9 • Engine Restore</title>
+  <title>Analycode v4.0 • Zero Duplicate</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
@@ -60,7 +60,7 @@
         }
       };
 
-      // RETOUR AU MOTEUR CHIRURGICAL DE LA v3.7 (PERFORMANT & RECONNU)
+      // MOTEUR D'EXTRACTION RESTAURÉ v3.7 STABLE
       const extractFullElementBlock = (fullCode, startIndex, term) => {
         if (!fullCode || startIndex === -1) return null;
 
@@ -220,16 +220,30 @@
           customs: dynamicComponents
         }), [dynamicComponents]);
 
+        // FILTRAGE STRICT PAR BOUNDARY (MOT ENTIER) v4.0 POUR EVITER LES DOUBLONS DANS LES COMMENTAIRES
         const findMatches = useCallback((code, term) => {
           if (!term || !code) return [];
           const cleanTerm = term.replace(/[<\/>]/g, "").trim();
           const results = [];
-          let index = 0;
-          while (index < code.length) {
-            const found = code.toLowerCase().indexOf(cleanTerm.toLowerCase(), index);
-            if (found === -1) break;
-            results.push({ start: found, length: cleanTerm.length });
-            index = found + Math.max(1, cleanTerm.length);
+          
+          // Si c'est un tag connu, on cherche le mot entier pour éviter les pièges
+          const isTag = STATIC_TOKENS.structure.includes(cleanTerm.toLowerCase());
+          
+          if (isTag) {
+            const regex = new RegExp(`\\b${cleanTerm}\\b`, 'gi');
+            let match;
+            while ((match = regex.exec(code)) !== null) {
+              results.push({ start: match.index, length: cleanTerm.length });
+            }
+          } else {
+            // Recherche textuelle classique pour les classes ou hooks
+            let index = 0;
+            while (index < code.length) {
+              const found = code.toLowerCase().indexOf(cleanTerm.toLowerCase(), index);
+              if (found === -1) break;
+              results.push({ start: found, length: cleanTerm.length });
+              index = found + Math.max(1, cleanTerm.length);
+            }
           }
           return results;
         }, []);
@@ -262,7 +276,7 @@
 
         const handleCopyState = () => {
           const debugState = {
-            analycodeVersion: "3.9",
+            analycodeVersion: "4.0",
             timestamp: new Date().toISOString(),
             searchTerm: searchTerm,
             matchIndex: matches.length > 0 ? currentMatchIdx + 1 : 0,
@@ -286,8 +300,8 @@
                 {/* Header */}
                 <div className="bg-[#050505] border border-[#2d2d3a] rounded-xl p-2 text-center relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-500 to-transparent animate-pulse"></div>
-                  <h1 className="text-xs font-mono text-cyan-400 font-bold tracking-widest uppercase">🧠 ANALYCODE v3.9</h1>
-                  <p className="text-[9px] text-gray-500 font-mono">Restored Engine Stable</p>
+                  <h1 className="text-xs font-mono text-cyan-400 font-bold tracking-widest uppercase">🧠 ANALYCODE v4.0</h1>
+                  <p className="text-[9px] text-gray-500 font-mono">Zero Ghost Matches Mode</p>
                 </div>
 
                 {/* Input Area */}
@@ -304,7 +318,7 @@
                     <LiveSandBox code={isolatedBlock} sourceCode={sourceCode} />
                   ) : (
                     <div className="text-gray-600 italic text-[10px] border border-dashed border-[#2d2d3a] rounded-lg h-20 flex items-center justify-center bg-black/20 font-mono">
-                      RENDU GLOBAL RESTAURÉ
+                      RENDU NETTOYÉ DES SOUVENIRS
                     </div>
                   )}
                 </div>
@@ -338,7 +352,7 @@
                 {/* BLOC DE CODE SOURCE */}
                 <div className="bg-[#050508] border border-[#2d2d3a] rounded-xl p-2 relative shadow-inner">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-[9px] font-mono text-gray-500 tracking-wider">✂️ SOURCE PARCOURUE :</span>
+                    <span className="text-[9px] font-mono text-gray-500 tracking-wider">✂️ SOURCE TRAITÉE (MOTS ENTIERS) :</span>
                     {isolatedBlock && (
                       <button 
                         onClick={handleCopy}
@@ -399,7 +413,7 @@
 
               {/* Footer */}
               <div className="text-center text-[8px] font-mono text-gray-700 pt-1 border-t border-[#1a1a24]">
-                ANALYCODE ENGINE v3.9 • CORE 3.7 RESTORED & ACTIVE
+                ANALYCODE ENGINE v4.0 • STRICT WORD BOUNDARY ACTIVE
               </div>
 
             </div>
