@@ -4,26 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="manifest.json">
-    <title>Système d'Alerte</title>
+    <title>Mon Alerte</title>
 </head>
 <body>
     <h1>Panneau de contrôle</h1>
-    <button id="sendBtn" style="padding: 20px; font-size: 20px;">Envoyer une alerte</button>
+    <button id="sendBtn" style="padding: 20px; font-size: 20px; cursor: pointer;">Envoyer une alerte</button>
 
     <script>
-        // Remplacez "votre_topic_unique" par un nom de topic secret
-        const TOPIC = "votre_topic_unique";
+        const TOPIC = "votre_topic_unique"; // Remplacez par votre nom de topic
 
         document.getElementById('sendBtn').addEventListener('click', () => {
             fetch(`https://ntfy.sh/${TOPIC}`, {
                 method: 'POST',
                 body: 'Une nouvelle alerte est arrivée !'
-            });
+            }).then(() => alert("Message envoyé !"));
         });
 
-        // Enregistrement du Service Worker pour la PWA
+        // Enregistrement strict du Service Worker
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('SW enregistré', reg))
+                .catch(err => console.log('Erreur SW', err));
         }
     </script>
 </body>
