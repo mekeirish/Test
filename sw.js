@@ -1,9 +1,9 @@
-self.addEventListener('push', function(event) {
-    const data = event.data ? event.data.text() : 'Nouvelle notification';
+self.addEventListener('push', event => {
+    const data = event.data ? event.data.text() : 'Nouvelle alerte';
     event.waitUntil(
-        self.registration.showNotification('Alerte Système', {
+        self.registration.showNotification('Mon Alerte PWA', {
             body: data,
-            icon: './icon.png' // Assurez-vous d'avoir une image icon.png ou supprimez cette ligne
+            icon: './icon.png'
         })
     );
 });
