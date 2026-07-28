@@ -2,30 +2,88 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="manifest.json">
-    <title>Mon Alerte</title>
-</head>
+    <title>Clonage Vocal 100% Navigateur</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
+        textarea, input { width: 100%; margin-bottom: 15px; padding: 8px; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; cursor: pointer; }
+        button:disabled { background: #ccc; }
+        #status { font-weight: bold; color: #333; margin-top: 15px; }
+    </style>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4b6cb7">
+<link rel="apple-touch-icon" href="icon.png"></head>
 <body>
-    <h1>Panneau de contrôle</h1>
-    <button id="sendBtn" style="padding: 20px; font-size: 20px; cursor: pointer;">Envoyer une alerte</button>
 
-    <script>
-        const TOPIC = "votre_topic_unique"; // Remplacez par votre nom de topic
+    <h2>Clonage de Voix Local (Zero Server)</h2>
+    <p>Cette application tourne entièrement dans votre navigateur grâce à WebGPU et Hugging Face.</p>
 
-        document.getElementById('sendBtn').addEventListener('click', () => {
-            fetch(`https://ntfy.sh/${TOPIC}`, {
-                method: 'POST',
-                body: 'Une nouvelle alerte est arrivée !'
-            }).then(() => alert("Message envoyé !"));
-        });
+    <label for="textInput">Texte à faire dire par la voix :</label>
+    <textarea id="textInput" rows="3">Bonjour, ceci est un test de synthèse vocale directement dans le navigateur web.</textarea>
 
-        // Enregistrement strict du Service Worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('SW enregistré', reg))
-                .catch(err => console.log('Erreur SW', err));
+    <button id="generateBtn" onclick="generateSpeech()">Générer la voix</button>
+
+    <div id="status">Prêt. (Le premier chargement du modèle peut prendre un moment).</div>
+    <br>
+    <audio id="audioResult" controls style="display:none;"></audio>
+
+    <!-- Importation de Transformers.js depuis un CDN -->
+    <script type="module">
+        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3';
+
+        let synthesizer = null;
+
+        async function initModel() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = "Téléchargement et chargement du modèle d'IA en cours (patientez)...";
+            
+            try {
+                // Utilisation d'un pipeline de synthèse vocale text-to-speech compatible navigateur
+                synthesizer = await pipeline('text-to-speech', 'Xenova/speecht5_tts', {
+                    device: 'webgpu' // Utilise la carte graphique pour de meilleures performances
+                });
+                statusDiv.textContent = "Modèle prêt ! Vous pouvez générer de l'audio.";
+            } catch (err) {
+                console.error(err);
+                statusDiv.textContent = "Erreur lors du chargement du modèle.";
+            }
         }
+
+        // Lancement de l'initialisation au chargement de la page
+        initModel();
+
+        window.generateSpeech = async function() {
+            if (!synthesizer) {
+                alert("Le modèle n'est pas encore prêt.");
+                return;
+            }
+
+            const text = document.getElementById('textInput').value;
+            const statusDiv = document.getElementById('status');
+            const audioPlayer = document.getElementById('audioResult');
+
+            statusDiv.textContent = "Génération de l'audio en cours...";
+            audioPlayer.style.display = 'none';
+
+            try {
+                // Génération de l'audio par l'IA
+                const output = await synthesizer(text);
+                
+                // Conversion de la sortie en URL audio jouable par le navigateur
+                const blob = new Blob([output.audio], { type: 'audio/wav' });
+                const audioUrl = URL.createObjectURL(blob);
+
+                audioPlayer.src = audioUrl;
+                audioPlayer.style.display = 'block';
+                statusDiv.textContent = "Génération terminée !";
+            } catch (error) {
+                statusDiv.textContent = "Erreur : " + error.message;
+            }
+        };
     </script>
+
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));}</script>
 </body>
 </html>
