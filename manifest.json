@@ -1,9 +1,16 @@
 {
-  "name": "Mon Alerte Push",
-  "short_name": "Alerte",
+  "name": "Test",
+  "short_name": "Test",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
-  "scope": "./"
+  "background_color": "#1a1c20",
+  "theme_color": "#4b6cb7",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
