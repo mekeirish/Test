@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AR Measure Studio</title>
+    <meta http-equiv="Permissions-Policy" content="xr-spatial-tracking=(self)">
+    <meta name="theme-color" content="#0f172a">
+    <title>AR Real Measure</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon.png">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -18,9 +24,11 @@
             }
         }
     </script>
-    <!-- Three.js et ARButton via CDN -->
+    
+    <!-- Three.js et ARButton -->
     <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
     <script src="https://unpkg.com/three@0.160.0/examples/jsm/webxr/ARButton.js"></script>
+    
     <style>
         .glass-panel {
             background: rgba(15, 23, 42, 0.85);
@@ -29,35 +37,34 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
     </style>
-
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4b6cb7">
-<link rel="apple-touch-icon" href="icon.png"></head>
+</head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between overflow-hidden select-none m-0 p-0">
 
     <!-- En-tête -->
     <header class="absolute top-4 left-4 right-4 p-4 glass-panel rounded-2xl z-10 flex justify-between items-center shadow-lg pointer-events-none">
-        <h1 class="font-bold text-lg tracking-wider bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">AR Real Measure</h1>
+        <div class="flex items-center gap-3">
+            <img src="icon.png" alt="Logo" class="w-7 h-7 rounded-lg">
+            <h1 class="font-bold text-lg tracking-wider bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">AR Real Measure</h1>
+        </div>
         <div id="status-badge" class="px-3 py-1 rounded-full text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
-            Vérification AR...
+            Initialisation...
         </div>
     </header>
 
     <!-- Affichage distance -->
     <div id="info-card" class="absolute top-24 left-1/2 -translate-x-1/2 glass-panel px-6 py-3 rounded-2xl z-10 text-center shadow-2xl border border-cyan-500/30 hidden pointer-events-none">
-        <p class="text-xs text-slate-400 uppercase tracking-widest font-semibold">Distance réelle mesurée</p>
+        <p class="text-xs text-slate-400 uppercase tracking-widest font-semibold">Distance mesurée</p>
         <p id="distance-display" class="text-2xl font-bold text-cyan-300">-- cm</p>
     </div>
 
-    <!-- Instructions -->
+    <!-- Instructions contextuelles -->
     <div id="instruction-banner" class="absolute bottom-32 left-1/2 -translate-x-1/2 glass-panel px-4 py-2 rounded-xl text-amber-300 font-medium text-xs shadow-2xl border border-amber-500/30 text-center max-w-xs z-10 pointer-events-none">
-        Patientez pendant la vérification du support AR...
+        Vérification des capacités AR du téléphone...
     </div>
 
-    <!-- Bouton de lancement AR (Conteneur principal) -->
-    <div id="ar-button-container" class="absolute bottom-10 left-1/2 -translate-x-1/2 z-100"></div>
+    <!-- Conteneur bouton AR / Fallback -->
+    <div id="ar-button-container" class="absolute bottom-10 left-1/2 -translate-x-1/2 z-50"></div>
 
-    <!-- Script AR WebXR -->
     <script>
         let camera, scene, renderer;
         let controller;
@@ -75,6 +82,16 @@
         const instructionBanner = document.getElementById('instruction-banner');
         const arContainer = document.getElementById('ar-button-container');
 
+        // Enregistrement Service Worker basique pour valider la PWA
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+                self.addEventListener('install', e => self.skipWaiting());
+                self.addEventListener('fetch', e => e.respondWith(fetch(e.request)));
+            `;
+            const blob = new Blob([swCode], { type: 'application/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+        }
+
         init();
 
         async function init() {
@@ -91,16 +108,18 @@
             renderer.xr.enabled = true;
             document.body.appendChild(renderer.domElement);
 
-            // Vérification explicite de la compatibilité WebXR AR
+            // Détection du mode PWA Standalone
+            const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
             if ('xr' in navigator) {
                 try {
                     const supported = await navigator.xr.isSessionSupported('immersive-ar');
+                    
                     if (supported) {
-                        statusBadge.textContent = 'AR Compatible';
+                        statusBadge.textContent = 'AR Prête';
                         statusBadge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
-                        instructionBanner.textContent = "Appuyez sur le bouton ci-dessous pour démarrer le mètre AR.";
+                        instructionBanner.textContent = "Cliquez ci-dessous pour lancer la caméra AR.";
                         
-                        // Création du bouton Three.js officiel
                         const arButton = ARButton.createButton(renderer, {
                             requiredFeatures: ['hit-test'],
                             optionalFeatures: ['dom-overlay'],
@@ -110,13 +129,13 @@
                         arButton.textContent = '🚀 Démarrer le Mètre AR';
                         arContainer.appendChild(arButton);
                     } else {
-                        showFallbackError("Votre navigateur ou appareil ne supporte pas 'immersive-ar'.");
+                        handleIncompatibility(isPWA);
                     }
                 } catch (e) {
-                    showFallbackError("Erreur lors de l'initialisation AR : " + e.message);
+                    handleIncompatibility(isPWA);
                 }
             } else {
-                showFallbackError("WebXR n'est pas disponible sur ce navigateur (essayez Chrome sur Android).");
+                handleIncompatibility(isPWA);
             }
 
             // Réticule
@@ -148,11 +167,28 @@
             animate();
         }
 
-        function showFallbackError(msg) {
-            statusBadge.textContent = 'AR Incompatible';
+        function handleIncompatibility(isPWA) {
+            statusBadge.textContent = 'AR Restreinte';
             statusBadge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-rose-500/20 text-rose-300 border border-rose-500/30';
-            instructionBanner.textContent = msg;
-            arContainer.innerHTML = `<div class="p-3 rounded-xl bg-rose-950/80 text-rose-200 text-xs border border-rose-500/30 text-center">Veuillez utiliser Google Chrome à jour sur mobile.</div>`;
+
+            if (isPWA) {
+                instructionBanner.textContent = "Android bloque l'AR en mode PWA plein écran.";
+                const cleanUrl = location.href.replace(/^https?:\/\//, '');
+                const chromeIntentUrl = `intent://${cleanUrl}#Intent;scheme=https;package=com.android.chrome;end;`;
+
+                arContainer.innerHTML = `
+                    <a href="${chromeIntentUrl}" class="px-6 py-3.5 rounded-2xl font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-2xl block text-center border border-indigo-400/40 text-sm">
+                        Ouvrir dans Chrome Native
+                    </a>
+                `;
+            } else {
+                instructionBanner.textContent = "Vérifiez que ARCore est à jour et utilisez Chrome Mobile.";
+                arContainer.innerHTML = `
+                    <div class="p-3 rounded-xl bg-rose-950/80 text-rose-200 text-xs border border-rose-500/30 text-center">
+                        Navigateur non compatible WebXR AR.
+                    </div>
+                `;
+            }
         }
 
         function onWindowResize() {
@@ -175,7 +211,7 @@
                 points.push(position);
 
                 if (points.length === 1) {
-                    instructionBanner.textContent = "Point 1 placé ! Touchez pour le Point 2.";
+                    instructionBanner.textContent = "Point 1 placé ! Touchez l'écran pour le Point 2.";
                 } else if (points.length === 2) {
                     const distanceMeters = points[0].distanceTo(points[1]);
                     const distanceCm = distanceMeters * 100;
@@ -187,7 +223,7 @@
                     lineMesh = new THREE.Line(lineGeo, materialLine);
                     scene.add(lineMesh);
 
-                    instructionBanner.textContent = "Mesure finie. Retouchez pour recommencer.";
+                    instructionBanner.textContent = "Mesure terminée. Touchez à nouveau pour réinitialiser.";
                 } else {
                     resetMeasurement();
                     const sphereGeo2 = new THREE.SphereGeometry(0.015, 32, 32);
@@ -196,7 +232,7 @@
                     sphereMesh2.position.copy(position);
                     scene.add(sphereMesh2);
                     points.push(position);
-                    instructionBanner.textContent = "Point 1 placé ! Touchez pour le Point 2.";
+                    instructionBanner.textContent = "Point 1 placé ! Touchez l'écran pour le Point 2.";
                 }
             }
         }
@@ -249,7 +285,5 @@
             renderer.render(scene, camera);
         }
     </script>
-
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));}</script>
 </body>
 </html>
